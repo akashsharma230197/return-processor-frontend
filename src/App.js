@@ -5,40 +5,111 @@ import CompanyMaster from './components/CompanyMaster';
 import CourierMaster from './components/CourierMaster';
 import ReturnMaster from './components/ReturnMaster';
 import ReturnDetailedEntry from './components/ReturnDetailedEntry';
-import ShareReportMaster from './components/ShareReportMaster'; // ✅ Import Share Report
+import ShareReportMaster from './components/ShareReportMaster';
 import Login from './components/Login';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   if (!user) return <Login setUser={setUser} />;
 
   return (
     <Router>
-      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <h1>Return Processor App (Logged in as {user.username})</h1>
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <h1 style={styles.title}>📦 Return Processor</h1>
+          <p style={styles.userInfo}>Logged in as <strong>{user.username}</strong></p>
+          <button
+            style={styles.toggleButton}
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            ☰ Menu
+          </button>
+        </header>
 
-        <nav style={{ marginBottom: '20px' }}>
-          <Link to="/design" style={{ marginRight: '15px' }}>Design Master</Link>
-          <Link to="/company" style={{ marginRight: '15px' }}>Company Master</Link>
-          <Link to="/courier" style={{ marginRight: '15px' }}>Courier Master</Link>
-          <Link to="/return" style={{ marginRight: '15px' }}>Return Master</Link>
-          <Link to="/return-detailed-entry" style={{ marginRight: '15px' }}>Return Detailed Entry</Link>
-          <Link to="/share-report">Share Report</Link> {/* ✅ New nav link */}
-        </nav>
+        {showMenu && (
+          <nav style={styles.nav}>
+            <Link style={styles.navLink} to="/design" onClick={() => setShowMenu(false)}>Design Master</Link>
+            <Link style={styles.navLink} to="/company" onClick={() => setShowMenu(false)}>Company Master</Link>
+            <Link style={styles.navLink} to="/courier" onClick={() => setShowMenu(false)}>Courier Master</Link>
+            <Link style={styles.navLink} to="/return" onClick={() => setShowMenu(false)}>Return Master</Link>
+            <Link style={styles.navLink} to="/return-detailed-entry" onClick={() => setShowMenu(false)}>Return Detailed Entry</Link>
+            <Link style={styles.navLink} to="/share-report" onClick={() => setShowMenu(false)}>Share Report</Link>
+          </nav>
+        )}
 
-        <Routes>
-          <Route path="/design" element={<DesignMaster />} />
-          <Route path="/company" element={<CompanyMaster />} />
-          <Route path="/courier" element={<CourierMaster />} />
-          <Route path="/return" element={<ReturnMaster user={user} />} />
-          <Route path="/return-detailed-entry" element={<ReturnDetailedEntry user={user} />} />
-          <Route path="/share-report" element={<ShareReportMaster user={user} />} /> {/* ✅ New route */}
-          <Route path="*" element={<div>Select a master from the menu above.</div>} />
-        </Routes>
+        <main style={styles.main}>
+          <Routes>
+            <Route path="/design" element={<DesignMaster />} />
+            <Route path="/company" element={<CompanyMaster />} />
+            <Route path="/courier" element={<CourierMaster />} />
+            <Route path="/return" element={<ReturnMaster user={user} />} />
+            <Route path="/return-detailed-entry" element={<ReturnDetailedEntry user={user} />} />
+            <Route path="/share-report" element={<ShareReportMaster user={user} />} />
+            <Route path="*" element={<div>Select a module from the menu above.</div>} />
+          </Routes>
+        </main>
       </div>
     </Router>
   );
 }
+
+const styles = {
+  container: {
+    fontFamily: 'Segoe UI, sans-serif',
+    padding: '10px',
+    maxWidth: '100%',
+    backgroundColor: '#f9f9f9',
+    minHeight: '100vh',
+  },
+  header: {
+    backgroundColor: '#007bff',
+    color: 'white',
+    padding: '15px 20px',
+    borderRadius: '5px',
+    position: 'relative',
+  },
+  title: {
+    margin: 0,
+    fontSize: '1.6rem',
+  },
+  userInfo: {
+    margin: '5px 0 0 0',
+    fontSize: '0.9rem',
+  },
+  toggleButton: {
+    position: 'absolute',
+    top: '15px',
+    right: '20px',
+    fontSize: '1.2rem',
+    background: 'transparent',
+    color: 'white',
+    border: 'none',
+    cursor: 'pointer',
+  },
+  nav: {
+    backgroundColor: '#e9ecef',
+    padding: '10px 15px',
+    marginTop: '10px',
+    borderRadius: '5px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  navLink: {
+    marginBottom: '8px',
+    textDecoration: 'none',
+    color: '#007bff',
+    fontWeight: '500',
+  },
+  main: {
+    marginTop: '20px',
+    padding: '10px',
+    backgroundColor: 'white',
+    borderRadius: '5px',
+    minHeight: '60vh',
+    boxShadow: '0 0 5px rgba(0,0,0,0.1)',
+  },
+};
 
 export default App;
