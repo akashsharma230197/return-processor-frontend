@@ -11,7 +11,7 @@ function ReturnDetailedEntry() {
     courier: '',
     date: '',
     design: '',
-    quantity: '',
+    quantity: '1',
   });
 
   const [entries, setEntries] = useState([]);
@@ -74,7 +74,7 @@ function ReturnDetailedEntry() {
         quantity: Number(formData.quantity),
       });
       setMessage(`✔️ Entry saved! ID: ${res.data.id}`);
-      setFormData(prev => ({ ...prev, design: '', quantity: '' }));
+      setFormData(prev => ({ ...prev, design: '', quantity: '1' }));
       fetchEntries();
     } catch (err) {
       setMessage('❌ Error saving entry');

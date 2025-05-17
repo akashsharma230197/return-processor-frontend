@@ -6,9 +6,12 @@ import autoTable from 'jspdf-autotable';
 const BASE_URL = 'https://return-processor-backend.onrender.com/api/data';
 
 const ShareReportMaster = () => {
+  const today = new Date();
+  const defaultDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
   const [selectedTable, setSelectedTable] = useState('');
   const [reportData, setReportData] = useState([]);
-  const [filters, setFilters] = useState({ company: '', courier: '', date: '' });
+  const [filters, setFilters] = useState({ company: '', courier: '', date: defaultDate });
   const [companies, setCompanies] = useState([]);
   const [couriers, setCouriers] = useState([]);
 
@@ -41,10 +44,9 @@ const ShareReportMaster = () => {
 
   const fetchAllData = async () => {
     try {
-      const url =
-        selectedTable === 'ReturnMaster'
-          ? `${BASE_URL}/return-master`
-          : `${BASE_URL}/return-detailed-entry`;
+      const url = selectedTable === 'ReturnMaster'
+        ? `${BASE_URL}/return-master`
+        : `${BASE_URL}/return-detailed-entry`;
       const res = await axios.get(url);
       setReportData(res.data);
     } catch (err) {
@@ -54,69 +56,165 @@ const ShareReportMaster = () => {
 
   const applyFilters = () => {
     const { company, courier, date } = filters;
-    const filtered = reportData.filter(item =>
-      (!company || item.company === company) &&
-      (!courier || item.courier === courier) &&
-      (!date || item.date === date)
-    );
+    const filtered = reportData.filter(item => {
+      const itemDate = item.date?.split('T')[0];
+      return (
+        (!company || item.company === company) &&
+        (!courier || item.courier === courier) &&
+        (!date || itemDate === date)
+      );
+    });
     setReportData(filtered);
   };
 
-  const groupData = () => {
-    const grouped = {};
+  const getGroupedSummary = () => {
+    const summary = {};
     reportData.forEach(item => {
-      const key = `${item.company} | ${item.courier} | ${item.date}`;
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(item);
+      const formattedDate = item.date?.split('T')[0] || '';
+      const key = selectedTable === 'ReturnDetailedEntry'
+        ? `${item.company}|${item.courier}|${formattedDate}|${item.design}`
+        : `${item.company}|${item.courier}|${formattedDate}`;
+
+      if (!summary[key]) {
+        summary[key] = {
+          company: item.company,
+          courier: item.courier,
+          date: formattedDate,
+          design: item.design || '',
+          total: 0
+        };
+      }
+
+      summary[key].total += selectedTable === 'ReturnDetailedEntry'
+        ? Number(item.quantity)
+        : Number(item.no_return);
     });
-    return grouped;
+
+    return Object.values(summary);
   };
 
-  const downloadPDF = () => {
-    const doc = new jsPDF();
+  
+
+
+
+
+
+
+const downloadPDF = () => {
+  const doc = new jsPDF();
+  const title = selectedTable === 'ReturnMaster' ? 'Return Received' : 'Goods Return Report';
+  let currentY = 10;
+
+  doc.text(title, 14, currentY);
+  currentY += 10;
+
+  const grouped = getGroupedSummary();
+
+  // Helper to group data
+  const groupBy = (data, keys) => {
+    const map = {};
+    data.forEach(item => {
+      const key = keys.map(k => item[k] || '').join('|');
+      if (!map[key]) {
+        map[key] = {
+          ...keys.reduce((acc, k) => ({ ...acc, [k]: item[k] }), {}),
+          total: 0
+        };
+      }
+      map[key].total += item.total;
+    });
+    return Object.values(map);
+  };
+
+  // --- 1. Group by Company ---
+  const summary1 = groupBy(grouped, ['company']);
+  doc.text('1. Summary by Company', 14, currentY);
+  currentY += 6;
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Company', 'Total']],
+    body: summary1.map(item => [item.company, item.total]),
+    didDrawPage: (data) => {
+      currentY = data.cursor.y + 10;
+    }
+  });
+
+  // --- 2. Group by Company + Courier ---
+  const summary2 = groupBy(grouped, ['company', 'courier']);
+  doc.text('2. Summary by Company + Courier', 14, currentY);
+  currentY += 6;
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Company', 'Courier', 'Total']],
+    body: summary2.map(item => [item.company, item.courier, item.total]),
+    didDrawPage: (data) => {
+      currentY = data.cursor.y + 10;
+    }
+  });
+
+  // --- 3. Group by Company + Design ---
+  const summary3 = groupBy(grouped, ['company', 'design']);
+  doc.text('3. Summary by Company + Design', 14, currentY);
+  currentY += 6;
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Company', 'Design', 'Total']],
+    body: summary3.map(item => [item.company, item.design, item.total]),
+    didDrawPage: (data) => {
+      currentY = data.cursor.y + 10;
+    }
+  });
+
+  doc.save(`${title.replace(/\s/g, '_')}.pdf`);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ const shareOnWhatsApp = () => {
+    const grouped = getGroupedSummary();
     const title = selectedTable === 'ReturnMaster' ? 'Return Received' : 'Goods Return Report';
-    doc.text(title, 14, 10);
-    const grouped = groupData();
-    let startY = 20;
-    Object.entries(grouped).forEach(([groupKey, items]) => {
-      doc.text(groupKey, 14, startY);
-      startY += 5;
-      const columns =
-        selectedTable === 'ReturnMaster'
-          ? ['User ID', 'No. Return']
-          : ['User ID', 'Design', 'Quantity'];
-      const rows = items.map(item =>
-        selectedTable === 'ReturnMaster'
-          ? [item.user_id, item.no_return]
-          : [item.user_id, item.design, item.quantity]
-      );
-      autoTable(doc, {
-        head: [columns],
-        body: rows,
-        startY: startY
-      });
-      startY = doc.lastAutoTable.finalY + 10;
-    });
-    doc.save(`${title.replace(/\s/g, '_')}.pdf`);
-  };
+    const messageParts = [title];
 
-  const shareOnWhatsApp = () => {
-    const grouped = groupData();
-    const messageParts = [];
-    Object.entries(grouped).forEach(([groupKey, items]) => {
-      messageParts.push(`\n${groupKey}:`);
-      items.forEach(item => {
-        const line =
-          selectedTable === 'ReturnMaster'
-            ? `  • User: ${item.user_id}, No. Return: ${item.no_return}`
-            : `  • User: ${item.user_id}, Design: ${item.design}, Qty: ${item.quantity}`;
-        messageParts.push(line);
-      });
+    grouped.forEach(item => {
+      const line = selectedTable === 'ReturnMaster'
+        ? `• ${item.company} | ${item.courier} | ${item.date} → Total: ${item.total}`
+        : `• ${item.company} | ${item.courier} | ${item.date} | ${item.design} → Qty: ${item.total}`;
+      messageParts.push(line);
     });
+
     const message = messageParts.join('\n') || 'No data to share';
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
   };
+
+  const groupedSummary = getGroupedSummary();
 
   return (
     <div className="container">
@@ -179,29 +277,27 @@ const ShareReportMaster = () => {
                 <tr>
                   {selectedTable === 'ReturnMaster' ? (
                     <>
-                      <th>ID</th><th>User ID</th><th>Company</th><th>Courier</th><th>Date</th><th>No. Return</th>
+                      <th>Company</th><th>Courier</th><th>Date</th><th>Total Returns</th>
                     </>
                   ) : (
                     <>
-                      <th>ID</th><th>User ID</th><th>Company</th><th>Courier</th><th>Date</th><th>Design</th><th>Quantity</th>
+                      <th>Company</th><th>Courier</th><th>Date</th><th>Design</th><th>Total Qty</th>
                     </>
                   )}
                 </tr>
               </thead>
               <tbody>
-                {reportData.map((item, index) => (
+                {groupedSummary.map((item, index) => (
                   <tr key={index}>
-                    <td>{item.id}</td>
-                    <td>{item.user_id}</td>
                     <td>{item.company}</td>
                     <td>{item.courier}</td>
                     <td>{item.date}</td>
                     {selectedTable === 'ReturnMaster' ? (
-                      <td>{item.no_return}</td>
+                      <td>{item.total}</td>
                     ) : (
                       <>
                         <td>{item.design}</td>
-                        <td>{item.quantity}</td>
+                        <td>{item.total}</td>
                       </>
                     )}
                   </tr>
