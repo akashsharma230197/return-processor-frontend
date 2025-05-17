@@ -42,14 +42,18 @@ function ReturnMaster() {
     }
   };
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/api/data/company`);
-      setCompanies(res.data.map(item => item.company));
-    } catch (err) {
-      console.error('Error fetching companies:', err);
-    }
-  };
+const fetchCompanies = async () => {
+  try {
+    const res = await axios.get(`${BACKEND_URL}/api/data/company`);
+    const sortedCompanies = res.data
+      .map(item => item.company)
+      .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
+    setCompanies(sortedCompanies);
+  } catch (err) {
+    console.error('Error fetching companies:', err);
+  }
+};
+
 
   const fetchCouriers = async () => {
     try {

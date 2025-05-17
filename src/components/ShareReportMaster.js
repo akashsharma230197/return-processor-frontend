@@ -7,7 +7,7 @@ const BASE_URL = 'https://return-processor-backend.onrender.com/api/data';
 
 const ShareReportMaster = () => {
   const today = new Date();
-  const defaultDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+  const defaultDate = today.toISOString().split('T')[0];
 
   const [selectedTable, setSelectedTable] = useState('');
   const [reportData, setReportData] = useState([]);
@@ -27,7 +27,8 @@ const ShareReportMaster = () => {
   const fetchCompanies = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/company`);
-      setCompanies(res.data.map(item => item.company));
+      const sorted = res.data.map(item => item.company).sort((a, b) => a.localeCompare(b));
+      setCompanies(sorted);
     } catch (err) {
       console.error('Error fetching companies', err);
     }
@@ -36,7 +37,8 @@ const ShareReportMaster = () => {
   const fetchCouriers = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/courier`);
-      setCouriers(res.data.map(item => item.courier));
+      const sorted = res.data.map(item => item.courier).sort((a, b) => a.localeCompare(b));
+      setCouriers(sorted);
     } catch (err) {
       console.error('Error fetching couriers', err);
     }
@@ -67,6 +69,11 @@ const ShareReportMaster = () => {
     setReportData(filtered);
   };
 
+  const clearFilters = () => {
+    setFilters({ company: '', courier: '', date: defaultDate });
+    fetchAllData(); // Re-fetch original unfiltered data
+  };
+
   const getGroupedSummary = () => {
     const summary = {};
     reportData.forEach(item => {
@@ -93,111 +100,74 @@ const ShareReportMaster = () => {
     return Object.values(summary);
   };
 
-  
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    const title = selectedTable === 'ReturnMaster' ? 'Return Received' : 'Goods Return Report';
+    let currentY = 10;
 
+    doc.text(title, 14, currentY);
+    currentY += 10;
 
+    const grouped = getGroupedSummary();
 
+    const groupBy = (data, keys) => {
+      const map = {};
+      data.forEach(item => {
+        const key = keys.map(k => item[k] || '').join('|');
+        if (!map[key]) {
+          map[key] = {
+            ...keys.reduce((acc, k) => ({ ...acc, [k]: item[k] }), {}),
+            total: 0
+          };
+        }
+        map[key].total += item.total;
+      });
+      return Object.values(map);
+    };
 
+    const summary1 = groupBy(grouped, ['company']);
+    doc.text('1. Summary by Company', 14, currentY);
+    currentY += 6;
 
-
-const downloadPDF = () => {
-  const doc = new jsPDF();
-  const title = selectedTable === 'ReturnMaster' ? 'Return Received' : 'Goods Return Report';
-  let currentY = 10;
-
-  doc.text(title, 14, currentY);
-  currentY += 10;
-
-  const grouped = getGroupedSummary();
-
-  // Helper to group data
-  const groupBy = (data, keys) => {
-    const map = {};
-    data.forEach(item => {
-      const key = keys.map(k => item[k] || '').join('|');
-      if (!map[key]) {
-        map[key] = {
-          ...keys.reduce((acc, k) => ({ ...acc, [k]: item[k] }), {}),
-          total: 0
-        };
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Company', 'Total']],
+      body: summary1.map(item => [item.company, item.total]),
+      didDrawPage: (data) => {
+        currentY = data.cursor.y + 10;
       }
-      map[key].total += item.total;
     });
-    return Object.values(map);
+
+    const summary2 = groupBy(grouped, ['company', 'courier']);
+    doc.text('2. Summary by Company + Courier', 14, currentY);
+    currentY += 6;
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Company', 'Courier', 'Total']],
+      body: summary2.map(item => [item.company, item.courier, item.total]),
+      didDrawPage: (data) => {
+        currentY = data.cursor.y + 10;
+      }
+    });
+
+    const summary3 = groupBy(grouped, ['company', 'design']);
+    doc.text('3. Summary by Company + Design', 14, currentY);
+    currentY += 6;
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Company', 'Design', 'Total']],
+      body: summary3.map(item => [item.company, item.design, item.total]),
+      didDrawPage: (data) => {
+        currentY = data.cursor.y + 10;
+      }
+    });
+
+    doc.save(`${title.replace(/\s/g, '_')}.pdf`);
   };
 
-  // --- 1. Group by Company ---
-  const summary1 = groupBy(grouped, ['company']);
-  doc.text('1. Summary by Company', 14, currentY);
-  currentY += 6;
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Company', 'Total']],
-    body: summary1.map(item => [item.company, item.total]),
-    didDrawPage: (data) => {
-      currentY = data.cursor.y + 10;
-    }
-  });
-
-  // --- 2. Group by Company + Courier ---
-  const summary2 = groupBy(grouped, ['company', 'courier']);
-  doc.text('2. Summary by Company + Courier', 14, currentY);
-  currentY += 6;
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Company', 'Courier', 'Total']],
-    body: summary2.map(item => [item.company, item.courier, item.total]),
-    didDrawPage: (data) => {
-      currentY = data.cursor.y + 10;
-    }
-  });
-
-  // --- 3. Group by Company + Design ---
-  const summary3 = groupBy(grouped, ['company', 'design']);
-  doc.text('3. Summary by Company + Design', 14, currentY);
-  currentY += 6;
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Company', 'Design', 'Total']],
-    body: summary3.map(item => [item.company, item.design, item.total]),
-    didDrawPage: (data) => {
-      currentY = data.cursor.y + 10;
-    }
-  });
-
-  doc.save(`${title.replace(/\s/g, '_')}.pdf`);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- const shareOnWhatsApp = () => {
+  const shareOnWhatsApp = () => {
     const grouped = getGroupedSummary();
     const title = selectedTable === 'ReturnMaster' ? 'Return Received' : 'Goods Return Report';
     const messageParts = [title];
@@ -262,7 +232,12 @@ const downloadPDF = () => {
             </div>
 
             <div className="form-group">
-              <button onClick={applyFilters}>Apply Filters</button>
+              <button onClick={applyFilters} style={{ backgroundColor: '#28a745', color: '#fff' }}>
+                Apply Filters
+              </button>
+              <button onClick={clearFilters} style={{ backgroundColor: '#ffc107', color: '#000' }}>
+                Clear Filters
+              </button>
             </div>
           </div>
 

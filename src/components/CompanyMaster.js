@@ -11,14 +11,15 @@ const CompanyMaster = () => {
     fetchCompanies();
   }, []);
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/company`);
-      setCompanies(res.data);
-    } catch (err) {
-      console.error('Error fetching companies:', err);
-    }
-  };
+const fetchCompanies = async () => {
+  try {
+    const res = await axios.get(`${BASE_URL}/company`);
+    const sorted = res.data.sort((a, b) => a.company.localeCompare(b.company));
+    setCompanies(sorted);
+  } catch (err) {
+    console.error('Error fetching companies:', err);
+  }
+};
 
   const addCompany = async () => {
     if (!newCompany) return;
