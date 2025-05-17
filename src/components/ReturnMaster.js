@@ -1,134 +1,168 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './ReturnMaster.css'; // Create this file for styling
 
-const ShareReportMaster = () => {
-  const [selectedTable, setSelectedTable] = useState('ReturnMaster');
-  const [companyFilter, setCompanyFilter] = useState('');
-  const [courierFilter, setCourierFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [reportData, setReportData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+const BACKEND_URL = 'https://return-processor-backend.onrender.com';
+
+function ReturnMaster() {
+  const [formData, setFormData] = useState({
+    user_id: '',
+    company: '',
+    courier: '',
+    date: '',
+    no_return: '',
+  });
+
+  const [entries, setEntries] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [couriers, setCouriers] = useState([]);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    fetchTableData(selectedTable);
-    fetchDropdowns();
-  }, [selectedTable]);
+    const user_id = localStorage.getItem('user_id') || '';
+    const today = new Date().toISOString().split('T')[0];
 
-  const fetchTableData = async (table) => {
+    setFormData(prev => ({
+      ...prev,
+      user_id,
+      date: today
+    }));
+
+    fetchEntries();
+    fetchCompanies();
+    fetchCouriers();
+  }, []);
+
+  const fetchEntries = async () => {
     try {
-      const endpoint =
-        table === 'ReturnMaster'
-          ? '/api/data/return-master'
-          : '/api/data/return-detailed-entry';
-
-      const res = await axios.get(`http://localhost:3001${endpoint}`);
-      setReportData(res.data);
-      setFilteredData(res.data); // set default
+      const res = await axios.get(`${BACKEND_URL}/api/data/return-master`);
+      setEntries(res.data);
     } catch (err) {
-      console.error('Error fetching report data:', err);
+      console.error('Error fetching entries:', err);
     }
   };
 
-  const fetchDropdowns = async () => {
+  const fetchCompanies = async () => {
     try {
-      const [companyRes, courierRes] = await Promise.all([
-        axios.get('http://localhost:3001/api/data/Company'),
-        axios.get('http://localhost:3001/api/data/Courier'),
-      ]);
-
-      setCompanies(companyRes.data.map(item => item.Company));
-      setCouriers(courierRes.data.map(item => item.Courier));
+      const res = await axios.get(`${BACKEND_URL}/api/data/company`);
+      setCompanies(res.data.map(item => item.company));
     } catch (err) {
-      console.error('Error fetching dropdowns', err);
+      console.error('Error fetching companies:', err);
     }
   };
 
-  const applyFilters = () => {
-    const filtered = reportData.filter(item => {
-      return (
-        (companyFilter === '' || item.company === companyFilter) &&
-        (courierFilter === '' || item.courier === courierFilter) &&
-        (dateFilter === '' || item.date === dateFilter)
-      );
-    });
+  const fetchCouriers = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/data/courier`);
+      setCouriers(res.data.map(item => item.courier));
+    } catch (err) {
+      console.error('Error fetching couriers:', err);
+    }
+  };
 
-    setFilteredData(filtered);
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/data/return-master`, {
+        ...formData,
+        no_return: Number(formData.no_return),
+      });
+      setMessage(`✔️ Entry saved! ID: ${res.data.id}`);
+      setFormData(prev => ({ ...prev, no_return: '' }));
+      fetchEntries();
+    } catch (err) {
+      setMessage('❌ Error saving entry');
+      console.error(err);
+    }
   };
 
   return (
-    <div>
-      <h2>Share Report Master</h2>
+    <div className="container">
+      <h2>Return Master Entry</h2>
 
-      <div>
-        <label>Table: </label>
-        <select value={selectedTable} onChange={e => setSelectedTable(e.target.value)}>
-          <option value="ReturnMaster">Return Received</option>
-          <option value="ReturnDetailedEntry">Goods Return Report</option>
-        </select>
-      </div>
+      <form onSubmit={handleSubmit} className="form">
+        <div className="form-group">
+          <label>User ID:</label>
+          <input type="text" name="user_id" value={formData.user_id} disabled />
+        </div>
 
-      <div>
-        <label>Company: </label>
-        <select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}>
-          <option value="">-- All --</option>
-          {companies.map((comp, idx) => (
-            <option key={idx} value={comp}>{comp}</option>
-          ))}
-        </select>
+        <div className="form-group">
+          <label>Company:</label>
+          <select name="company" value={formData.company} onChange={handleChange} required>
+            <option value="">--Select Company--</option>
+            {companies.map((comp, idx) => (
+              <option key={idx} value={comp}>{comp}</option>
+            ))}
+          </select>
+        </div>
 
-        <label>Courier: </label>
-        <select value={courierFilter} onChange={e => setCourierFilter(e.target.value)}>
-          <option value="">-- All --</option>
-          {couriers.map((cour, idx) => (
-            <option key={idx} value={cour}>{cour}</option>
-          ))}
-        </select>
+        <div className="form-group">
+          <label>Courier:</label>
+          <select name="courier" value={formData.courier} onChange={handleChange} required>
+            <option value="">--Select Courier--</option>
+            {couriers.map((cour, idx) => (
+              <option key={idx} value={cour}>{cour}</option>
+            ))}
+          </select>
+        </div>
 
-        <label>Date: </label>
-        <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+        <div className="form-group">
+          <label>Date:</label>
+          <input type="date" name="date" value={formData.date} onChange={handleChange} required />
+        </div>
 
-        <button onClick={applyFilters}>Apply Filters</button>
-      </div>
+        <div className="form-group">
+          <label>No. of Returns:</label>
+          <input
+            type="number"
+            name="no_return"
+            value={formData.no_return}
+            onChange={handleChange}
+            placeholder="Enter number of returns"
+            required
+            min="0"
+          />
+        </div>
 
-      <h3>Filtered Report</h3>
-      <table border="1" cellPadding="5">
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Courier</th>
-            <th>Date</th>
-            {selectedTable === 'ReturnMaster' ? (
-              <th>No. Returns</th>
-            ) : (
-              <>
-                <th>Design</th>
-                <th>Quantity</th>
-              </>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {filteredData.map((row, index) => (
-            <tr key={index}>
-              <td>{row.company}</td>
-              <td>{row.courier}</td>
-              <td>{row.date}</td>
-              {selectedTable === 'ReturnMaster' ? (
-                <td>{row.no_return}</td>
-              ) : (
-                <>
-                  <td>{row.design}</td>
-                  <td>{row.quantity}</td>
-                </>
-              )}
+        <button type="submit" className="submit-btn">Add Entry</button>
+      </form>
+
+      {message && <p className="message">{message}</p>}
+
+      <h3>Entries</h3>
+      <div className="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User ID</th>
+              <th>Company</th>
+              <th>Courier</th>
+              <th>Date</th>
+              <th>No. Return</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {entries.map(entry => (
+              <tr key={entry.id}>
+                <td>{entry.id}</td>
+                <td>{entry.user_id}</td>
+                <td>{entry.company}</td>
+                <td>{entry.courier}</td>
+                <td>{entry.date}</td>
+                <td>{entry.no_return}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
-};
+}
 
-export default ShareReportMaster;
+export default ReturnMaster;
