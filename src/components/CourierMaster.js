@@ -14,7 +14,9 @@ const CourierMaster = () => {
   const fetchCouriers = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/courier`);
-      setCouriers(res.data);
+	const sorted = res.data.sort((a, b) => a.courier.localeCompare(b.courier));
+
+      setCouriers(sorted);
     } catch (err) {
       console.error('Error fetching couriers:', err);
     }

@@ -35,27 +35,43 @@ function ReturnDetailedEntry() {
   }, []);
 
   const fetchEntries = async () => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/api/data/return-detailed-entry`);
-      setEntries(res.data);
-    } catch (err) {
-      console.error('Error fetching entries:', err);
-    }
-  };
+  try {
+    const res = await axios.get(`${BACKEND_URL}/api/data/return-detailed-entry`);
+    
+    // Sort by `id` descending and take top 40 entries
+    const sortedTopEntries = res.data
+      .sort((a, b) => b.id - a.id) // descending order
+      .slice(0, 40);               // limit to 40
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/api/data/company`);
-      setCompanies(res.data.map(item => item.company));
-    } catch (err) {
-      console.error('Error fetching companies:', err);
-    }
-  };
+    setEntries(sortedTopEntries);
+  } catch (err) {
+    console.error('Error fetching entries:', err);
+  }
+};
+
+
+ const fetchCompanies = async () => {
+  try {
+    const res = await axios.get(`${BACKEND_URL}/api/data/company`);
+    const sortedCompanies = res.data
+      .map(item => item.company)
+      .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
+    setCompanies(sortedCompanies);
+  } catch (err) {
+    console.error('Error fetching companies:', err);
+  }
+};
+
 
   const fetchCouriers = async () => {
     try {
       const res = await axios.get(`${BACKEND_URL}/api/data/courier`);
-      setCouriers(res.data.map(item => item.courier));
+	const sortedcouriers = res.data
+      .map(item => item.courier)
+      .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
+    setCouriers(sortedcouriers);
+
+
     } catch (err) {
       console.error('Error fetching couriers:', err);
     }

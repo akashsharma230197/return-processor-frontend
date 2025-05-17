@@ -41,13 +41,14 @@ function App() {
 
         <main style={styles.main}>
           <Routes>
+            <Route path="/" element={<ReturnMaster user={user} />} />
             <Route path="/design" element={<DesignMaster />} />
             <Route path="/company" element={<CompanyMaster />} />
             <Route path="/courier" element={<CourierMaster />} />
             <Route path="/return" element={<ReturnMaster user={user} />} />
             <Route path="/return-detailed-entry" element={<ReturnDetailedEntry user={user} />} />
             <Route path="/share-report" element={<ShareReportMaster user={user} />} />
-            <Route path="*" element={<div>Select a module from the menu above.</div>} />
+            <Route path="*" element={<ReturnMaster user={user} />} />
           </Routes>
         </main>
       </div>

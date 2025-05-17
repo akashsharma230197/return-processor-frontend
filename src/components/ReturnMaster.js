@@ -33,14 +33,20 @@ function ReturnMaster() {
     fetchCouriers();
   }, []);
 
-  const fetchEntries = async () => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/api/data/return-master`);
-      setEntries(res.data);
-    } catch (err) {
-      console.error('Error fetching entries:', err);
-    }
-  };
+const fetchEntries = async () => {
+  try {
+    const res = await axios.get(`${BACKEND_URL}/api/data/return-master`);
+    
+    // Sort by `id` in descending order and get top 40 entries
+    const sortedTopEntries = res.data
+      .sort((a, b) => b.id - a.id) // descending sort
+      .slice(0, 40);               // limit to top 40
+
+    setEntries(sortedTopEntries);
+  } catch (err) {
+    console.error('Error fetching entries:', err);
+  }
+};
 
 const fetchCompanies = async () => {
   try {
@@ -58,7 +64,12 @@ const fetchCompanies = async () => {
   const fetchCouriers = async () => {
     try {
       const res = await axios.get(`${BACKEND_URL}/api/data/courier`);
-      setCouriers(res.data.map(item => item.courier));
+	const sortedcouriers = res.data
+      .map(item => item.courier)
+      .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
+    setCouriers(sortedcouriers);
+
+
     } catch (err) {
       console.error('Error fetching couriers:', err);
     }
