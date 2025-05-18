@@ -184,7 +184,7 @@ function ReturnDetailedEntry() {
                 <td>{entry.user_id}</td>
                 <td>{entry.company}</td>
                 <td>{entry.courier}</td>
-                <td>{entry.date}</td>
+                <td>{entry.date.split('T')[0]}</td>
                 <td>{entry.design}</td>
                 <td>{entry.quantity}</td>
               </tr>

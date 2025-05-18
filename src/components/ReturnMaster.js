@@ -169,7 +169,7 @@ const fetchCompanies = async () => {
                 <td>{entry.user_id}</td>
                 <td>{entry.company}</td>
                 <td>{entry.courier}</td>
-                <td>{entry.date}</td>
+                <td>{entry.date.split('T')[0]}</td>
                 <td>{entry.no_return}</td>
               </tr>
             ))}
