@@ -7,6 +7,9 @@ import ReturnMaster from './components/ReturnMaster';
 import ReturnDetailedEntry from './components/ReturnDetailedEntry';
 import ShareReportMaster from './components/ShareReportMaster';
 import Login from './components/Login';
+import Billing from './components/Billing';
+import BillingQueryComponent from './components/BillingQueryComponent';
+import PortalMaster from './components/PortalMaster';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -18,7 +21,7 @@ function App() {
     <Router>
       <div style={styles.container}>
         <header style={styles.header}>
-          <h1 style={styles.title}>📦 Return Processor</h1>
+          <h1 style={styles.title}>📦 Balika Creations</h1>
           <p style={styles.userInfo}>Logged in as <strong>{user.username}</strong></p>
           <button
             style={styles.toggleButton}
@@ -32,7 +35,11 @@ function App() {
           <nav style={styles.nav}>
             <Link style={styles.navLink} to="/design" onClick={() => setShowMenu(false)}>Design Master</Link>
             <Link style={styles.navLink} to="/company" onClick={() => setShowMenu(false)}>Company Master</Link>
+		<Link style={styles.navLink} to="/portal" onClick={() => setShowMenu(false)}>Portal Master</Link> 
+
             <Link style={styles.navLink} to="/courier" onClick={() => setShowMenu(false)}>Courier Master</Link>
+		<Link style={styles.navLink} to="/Billing" onClick={() => setShowMenu(false)}>Billing</Link>
+			<Link style={styles.navLink} to="/BillingQueryComponent" onClick={() => setShowMenu(false)}>Billing Dashboard</Link>
             <Link style={styles.navLink} to="/return" onClick={() => setShowMenu(false)}>Return Master</Link>
             <Link style={styles.navLink} to="/return-detailed-entry" onClick={() => setShowMenu(false)}>Return Detailed Entry</Link>
             <Link style={styles.navLink} to="/share-report" onClick={() => setShowMenu(false)}>Share Report</Link>
@@ -44,7 +51,11 @@ function App() {
             <Route path="/" element={<ReturnMaster user={user} />} />
             <Route path="/design" element={<DesignMaster />} />
             <Route path="/company" element={<CompanyMaster />} />
+ 		<Route path="/portal" element={<PortalMaster />} />
             <Route path="/courier" element={<CourierMaster />} />
+		<Route path="/billing" element={<Billing />} />
+		<Route path="/billingquerycomponent" element={<BillingQueryComponent />} />
+
             <Route path="/return" element={<ReturnMaster user={user} />} />
             <Route path="/return-detailed-entry" element={<ReturnDetailedEntry user={user} />} />
             <Route path="/share-report" element={<ShareReportMaster user={user} />} />
