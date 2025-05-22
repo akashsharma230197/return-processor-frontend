@@ -6,25 +6,26 @@ const BASE_URL = 'https://return-processor-backend.onrender.com/api/data';
 const CompanyMaster = () => {
   const [companies, setCompanies] = useState([]);
   const [newCompany, setNewCompany] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchCompanies();
   }, []);
 
-const fetchCompanies = async () => {
-  try {
-    const res = await axios.get(`${BASE_URL}/company`);
-    const sorted = res.data.sort((a, b) => a.company.localeCompare(b.company));
-    setCompanies(sorted);
-  } catch (err) {
-    console.error('Error fetching companies:', err);
-  }
-};
+  const fetchCompanies = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/company`);
+      const sorted = res.data.sort((a, b) => a.company.localeCompare(b.company));
+      setCompanies(sorted);
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+    }
+  };
 
   const addCompany = async () => {
-    if (!newCompany) return;
+    if (!newCompany.trim()) return;
     try {
-      await axios.post(`${BASE_URL}/Company`, { company: newCompany });
+      await axios.post(`${BASE_URL}/Company`, { company: newCompany.trim() });
       setNewCompany('');
       fetchCompanies();
     } catch (err) {
@@ -33,6 +34,7 @@ const fetchCompanies = async () => {
   };
 
   const deleteCompany = async (name) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
     try {
       await axios.delete(`${BASE_URL}/company/${name}`);
       fetchCompanies();
@@ -40,6 +42,10 @@ const fetchCompanies = async () => {
       console.error('Error deleting company:', err);
     }
   };
+
+  const filteredCompanies = companies.filter(c =>
+    c.company.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div style={styles.container}>
@@ -56,18 +62,31 @@ const fetchCompanies = async () => {
         <button onClick={addCompany} style={styles.addButton}>➕ Add</button>
       </div>
 
+      <input
+        type="text"
+        placeholder="Search company..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        style={styles.searchInput}
+      />
+
       <ul style={styles.list}>
-        {companies.map((item, index) => (
-          <li key={index} style={styles.listItem}>
-            <span>{item.company}</span>
-            <button
-              onClick={() => deleteCompany(item.company)}
-              style={styles.deleteButton}
-            >
-              ❌
-            </button>
-          </li>
-        ))}
+        {filteredCompanies.length > 0 ? (
+          filteredCompanies.map((item, index) => (
+            <li key={index} style={styles.listItem}>
+              <span>{item.company}</span>
+              <button
+                onClick={() => deleteCompany(item.company)}
+                style={styles.deleteButton}
+                title="Delete"
+              >
+                🗑️
+              </button>
+            </li>
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', color: '#777' }}>No companies found</p>
+        )}
       </ul>
     </div>
   );
@@ -90,7 +109,7 @@ const styles = {
   },
   inputGroup: {
     display: 'flex',
-    marginBottom: '20px',
+    marginBottom: '10px',
     gap: '10px',
   },
   input: {
@@ -98,6 +117,13 @@ const styles = {
     padding: '10px',
     borderRadius: '5px',
     border: '1px solid #ccc',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '10px',
+    marginBottom: '20px',
+    borderRadius: '5px',
+    border: '1px solid #ddd',
   },
   addButton: {
     padding: '10px 15px',
