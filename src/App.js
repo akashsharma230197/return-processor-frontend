@@ -11,6 +11,9 @@ import Billing from './components/Billing';
 import BillingQueryComponent from './components/BillingQueryComponent';
 import PortalMaster from './components/PortalMaster';
 
+import PortalIdManager from './components/PortalIdManager';
+
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -37,6 +40,7 @@ function App() {
 		            <Link style={styles.navLink} to="/design" onClick={() => setShowMenu(false)}>Design Master</Link>
             <Link style={styles.navLink} to="/company" onClick={() => setShowMenu(false)}>Company Master</Link>
 		<Link style={styles.navLink} to="/portal" onClick={() => setShowMenu(false)}>Portal Master</Link> 
+		<Link style={styles.navLink} to="/portalidmanager" onClick={() => setShowMenu(false)}>Portal Login Id </Link> 
 
             <Link style={styles.navLink} to="/courier" onClick={() => setShowMenu(false)}>Courier Master</Link>
 		<Link style={styles.navLink} to="/Billing" onClick={() => setShowMenu(false)}>Billing</Link>
@@ -54,6 +58,7 @@ function App() {
             <Route path="/design" element={<DesignMaster />} />
             <Route path="/company" element={<CompanyMaster />} />
  		<Route path="/portal" element={<PortalMaster />} />
+		<Route path="/portalidmanager" element={<PortalIdManager />} />
             <Route path="/courier" element={<CourierMaster />} />
 		<Route path="/billing" element={<Billing />} />
 		<Route path="/billingquerycomponent" element={<BillingQueryComponent />} />

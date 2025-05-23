@@ -17,6 +17,7 @@ const ExcelUploadWithContext = () => {
   const [excelData, setExcelData] = useState([]);
   const [submittedData, setSubmittedData] = useState([]);
   const [message, setMessage] = useState('');
+  const [loginId, setLoginId] = useState('');
 
   useEffect(() => {
     const user_id = localStorage.getItem('user_id') || '';
@@ -47,9 +48,26 @@ const ExcelUploadWithContext = () => {
     }
   };
 
+  const fetchLoginId = async (company, portal) => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/data/login_id`, {
+        params: { company, portal }
+      });
+      setLoginId(res.data.login_id || 'Not found');
+    } catch (err) {
+      console.error('Error fetching login_id:', err);
+      setLoginId('Error fetching login ID');
+    }
+  };
+
   const handleChange = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const updatedForm = { ...formData, [name]: value };
+    setFormData(updatedForm);
+
+    if (updatedForm.company && updatedForm.portal) {
+      fetchLoginId(updatedForm.company, updatedForm.portal);
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -111,6 +129,7 @@ const ExcelUploadWithContext = () => {
     setExcelData([]);
     setSubmittedData([]);
     setMessage('');
+    setLoginId('');
   };
 
   const calculateTotalQuantity = () => {
@@ -142,6 +161,13 @@ const ExcelUploadWithContext = () => {
               ))}
             </select>
           </div>
+
+          {loginId && (
+            <div style={styles.inputGroup}>
+              <label>Login ID</label>
+              <input type="text" value={loginId} readOnly style={{ ...styles.input, backgroundColor: '#f0f0f0' }} />
+            </div>
+          )}
 
           <div style={styles.inputGroup}>
             <label>Date</label>
