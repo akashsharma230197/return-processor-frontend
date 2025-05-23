@@ -18,13 +18,13 @@ const PortalIdManager = () => {
 
   const fetchCompanies = async () => {
     const res = await axios.get(`${BASE_URL}/company`);
-    const sorted = res.data.map(c => c.company).sort((a, b) => a.localeCompare(b));
+    const sorted = res.data.map(c => c.company).sort();
     setCompanies(sorted);
   };
 
   const fetchPortals = async () => {
     const res = await axios.get(`${BASE_URL}/portal`);
-    const sorted = res.data.map(p => p.portal).sort((a, b) => a.localeCompare(b));
+    const sorted = res.data.map(p => p.portal).sort();
     setPortals(sorted);
   };
 
@@ -38,8 +38,7 @@ const PortalIdManager = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.company || !form.portal || !form.login_id) return alert('All fields required');
-
+    if (!form.company || !form.portal || !form.login_id) return alert('All fields are required');
     try {
       if (editIndex !== null) {
         const id = entries[editIndex].id;
@@ -74,7 +73,7 @@ const PortalIdManager = () => {
 
   return (
     <div style={styles.container}>
-      <h2>🔐 Portal Login Manager</h2>
+      <h2 style={styles.title}>🔐 Portal Login Manager</h2>
 
       <div style={styles.form}>
         <select name="company" value={form.company} onChange={handleChange} style={styles.input}>
@@ -101,79 +100,94 @@ const PortalIdManager = () => {
         </button>
       </div>
 
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Portal</th>
-            <th>Login ID</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry, i) => (
-            <tr key={entry.id}>
-              <td>{entry.company}</td>
-              <td>{entry.portal}</td>
-              <td>{entry.login_id}</td>
-              <td>
-                <button onClick={() => handleEdit(i)} style={styles.editButton}>✏️</button>
-                <button onClick={() => handleDelete(entry.id)} style={styles.deleteButton}>🗑️</button>
-              </td>
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Portal</th>
+              <th>Login ID</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {entries.map((entry, i) => (
+              <tr key={entry.id}>
+                <td>{entry.company}</td>
+                <td>{entry.portal}</td>
+                <td>{entry.login_id}</td>
+                <td>
+                  <button onClick={() => handleEdit(i)} style={styles.editButton}>✏️</button>
+                  <button onClick={() => handleDelete(entry.id)} style={styles.deleteButton}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
 
 const styles = {
   container: {
-    maxWidth: '800px',
+    maxWidth: '900px',
     margin: 'auto',
     padding: '20px',
-    fontFamily: 'Segoe UI, sans-serif'
+    fontFamily: 'Segoe UI, sans-serif',
+  },
+  title: {
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: '20px',
   },
   form: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: '10px',
-    marginBottom: '20px'
+    marginBottom: '20px',
   },
   input: {
-    flex: 1,
-    padding: '8px',
-    borderRadius: '4px',
-    border: '1px solid #ccc'
+    flex: '1 1 200px',
+    padding: '10px',
+    borderRadius: '6px',
+    border: '1px solid #ccc',
+    fontSize: '16px',
   },
   submitButton: {
-    padding: '8px 15px',
-    backgroundColor: '#28a745',
+    flex: '1 1 100px',
+    backgroundColor: '#007bff',
     color: '#fff',
+    padding: '10px',
     border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer'
+    borderRadius: '6px',
+    fontSize: '16px',
+    cursor: 'pointer',
+  },
+  tableContainer: {
+    overflowX: 'auto',
   },
   table: {
     width: '100%',
-    borderCollapse: 'collapse'
+    borderCollapse: 'collapse',
+    backgroundColor: '#fefefe',
+    boxShadow: '0 0 10px rgba(0,0,0,0.05)',
   },
   editButton: {
-    marginRight: '8px',
-    padding: '5px',
+    marginRight: '6px',
+    padding: '6px 10px',
+    backgroundColor: '#ffc107',
     border: 'none',
     borderRadius: '4px',
-    backgroundColor: '#ffc107',
-    color: '#000',
-    cursor: 'pointer'
+    cursor: 'pointer',
   },
   deleteButton: {
-    padding: '5px',
-    border: 'none',
-    borderRadius: '4px',
+    padding: '6px 10px',
     backgroundColor: '#dc3545',
     color: '#fff',
-    cursor: 'pointer'
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
   }
 };
 
