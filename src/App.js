@@ -12,6 +12,7 @@ import BillingQueryComponent from './components/BillingQueryComponent';
 import PortalMaster from './components/PortalMaster';
 
 import PortalIdManager from './components/PortalIdManager';
+import SalesTrend from './components/Sales Trend';
 
 
 
@@ -37,6 +38,8 @@ function App() {
 
         {showMenu && (
           <nav style={styles.nav}>
+  <Link style={styles.navLink} to="/SalesTrend" onClick={() => setShowMenu(false)}>Sales Trend</Link>
+
 		            <Link style={styles.navLink} to="/design" onClick={() => setShowMenu(false)}>Design Master</Link>
             <Link style={styles.navLink} to="/company" onClick={() => setShowMenu(false)}>Company Master</Link>
 		<Link style={styles.navLink} to="/portal" onClick={() => setShowMenu(false)}>Portal Master</Link> 
@@ -54,7 +57,8 @@ function App() {
         <main style={styles.main}>
           <Routes>
 		
-            <Route path="/" element={<ReturnMaster user={user} />} />
+            <Route path="/" element={<SalesTrend user={user} />} />
+<Route path="/salestrend" element={<SalesTrend />} />
             <Route path="/design" element={<DesignMaster />} />
             <Route path="/company" element={<CompanyMaster />} />
  		<Route path="/portal" element={<PortalMaster />} />
