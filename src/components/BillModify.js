@@ -17,18 +17,13 @@ const BillModify = () => {
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
-  const [isAuthorized, setIsAuthorized] = useState(null); // null = loading
+  const [isAuthorized, setIsAuthorized] = useState(null);
 
-  // ✅ Check username from DOM content (like "Logged in as akash")
   useEffect(() => {
     const text = document.body.innerText || "";
     const match = text.match(/Logged in as (\w+)/i);
     const username = match?.[1]?.toLowerCase();
-    if (username === "shubham" || username === "akash") {
-      setIsAuthorized(true);
-    } else {
-      setIsAuthorized(false);
-    }
+    setIsAuthorized(username === "shubham" || username === "akash");
   }, []);
 
   const fetchPortals = async () => {
@@ -45,7 +40,6 @@ const BillModify = () => {
       const res = await axios.get(`${BACKEND_URL}/billing?date=${selectedDate}`);
       setCompanies(res.data.companies || []);
     } catch (err) {
-      console.error("Error fetching companies:", err);
       setCompanies([]);
     }
   };
@@ -144,114 +138,63 @@ const BillModify = () => {
     doc.save(`${selectedCompany || "AllCompanies"}_${selectedDate}.pdf`);
   };
 
-  if (isAuthorized === null) {
-    return <p>Loading user info...</p>;
-  }
-
-  if (!isAuthorized) {
-    return <p>Sorry, this function is out of your scope.</p>;
-  }
+  if (isAuthorized === null) return <p className="status">Loading user info...</p>;
+  if (!isAuthorized) return <p className="status error">Sorry, this function is out of your scope.</p>;
 
   return (
-    <div className="container">
-      <h2>Billing Data</h2>
+    <div className="bill-container">
+      <h2>Billing Management</h2>
 
       <div className="filters">
-        <div className="form-group">
+        <div>
           <label>Date</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setSelectedCompany("");
-            }}
-          />
+          <input type="date" value={selectedDate} onChange={(e) => {
+            setSelectedDate(e.target.value);
+            setSelectedCompany("");
+          }} />
         </div>
-        <div className="form-group">
+        <div>
           <label>Company</label>
-          <select
-            value={selectedCompany}
-            onChange={(e) => setSelectedCompany(e.target.value)}
-          >
+          <select value={selectedCompany} onChange={(e) => setSelectedCompany(e.target.value)}>
             <option value="">-- All Companies --</option>
-            {companies.map((c, i) => (
-              <option key={i} value={c}>
-                {c}
-              </option>
-            ))}
+            {companies.map((c, i) => <option key={i} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="form-group">
+        <div>
           <label>Portal</label>
-          <select
-            value={selectedPortal}
-            onChange={(e) => setSelectedPortal(e.target.value)}
-          >
+          <select value={selectedPortal} onChange={(e) => setSelectedPortal(e.target.value)}>
             <option value="">-- All Portals --</option>
-            {portals.map((p, i) => (
-              <option key={i} value={p}>
-                {p}
-              </option>
-            ))}
+            {portals.map((p, i) => <option key={i} value={p}>{p}</option>)}
           </select>
         </div>
+        <button className="export-btn" onClick={exportPDF}>📤 Export PDF</button>
       </div>
 
-      <button onClick={exportPDF}>Export PDF Summary</button>
-
       {loading ? (
-        <p>Loading...</p>
+        <p className="status">Loading...</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Design</th>
-              <th>Quantity</th>
-              <th>Portal</th>
-              <th>Date</th>
-              <th>User</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {billingData.map((item) =>
-              editId === item.id ? (
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Design</th>
+                <th>Qty</th>
+                <th>Portal</th>
+                <th>Date</th>
+                <th>User</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billingData.map((item) => editId === item.id ? (
                 <tr key={item.id}>
+                  <td><input name="company" value={editForm.company} onChange={handleEditChange} /></td>
+                  <td><input name="design" value={editForm.design} onChange={handleEditChange} /></td>
+                  <td><input name="quantity" type="number" value={editForm.quantity} onChange={handleEditChange} /></td>
                   <td>
-                    <input
-                      name="company"
-                      value={editForm.company}
-                      onChange={handleEditChange}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      name="design"
-                      value={editForm.design}
-                      onChange={handleEditChange}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      name="quantity"
-                      type="number"
-                      value={editForm.quantity}
-                      onChange={handleEditChange}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      name="portal"
-                      value={editForm.portal}
-                      onChange={handleEditChange}
-                    >
-                      {portals.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
+                    <select name="portal" value={editForm.portal} onChange={handleEditChange}>
+                      {portals.map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </td>
                   <td>{item.date?.split("T")[0]}</td>
@@ -274,20 +217,79 @@ const BillModify = () => {
                     <button onClick={() => handleDelete(item.id)}>🗑️</button>
                   </td>
                 </tr>
-              )
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <style>{`
-        .container { padding: 1rem; }
-        .filters { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .form-group { display: flex; flex-direction: column; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
-        input, select { padding: 4px; width: 100%; }
-        button { margin: 0 2px; cursor: pointer; }
+        .bill-container {
+          max-width: 1200px;
+          margin: auto;
+          padding: 1rem;
+          font-family: Arial, sans-serif;
+        }
+        h2 {
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+        .filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1rem;
+          align-items: end;
+          margin-bottom: 1rem;
+        }
+        .filters > div {
+          display: flex;
+          flex-direction: column;
+        }
+        label {
+          font-weight: bold;
+          margin-bottom: 0.25rem;
+        }
+        input, select {
+          padding: 6px;
+          font-size: 1rem;
+        }
+        .export-btn {
+          padding: 6px 12px;
+          background: #1e90ff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .table-wrapper {
+          overflow-x: auto;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 1rem;
+        }
+        th, td {
+          border: 1px solid #ccc;
+          padding: 0.5rem;
+          text-align: center;
+        }
+        th {
+          background: #f0f0f0;
+        }
+        .status {
+          text-align: center;
+          margin-top: 2rem;
+        }
+        .error {
+          color: red;
+        }
+
+        @media (max-width: 600px) {
+          .filters {
+            flex-direction: column;
+          }
+        }
       `}</style>
     </div>
   );
