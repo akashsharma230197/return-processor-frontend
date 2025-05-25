@@ -13,6 +13,7 @@ import PortalMaster from './components/PortalMaster';
 
 import PortalIdManager from './components/PortalIdManager';
 import SalesTrend from './components/Sales Trend';
+import BillModify from './components/BillModify'
 
 
 
@@ -48,6 +49,8 @@ function App() {
             <Link style={styles.navLink} to="/courier" onClick={() => setShowMenu(false)}>Courier Master</Link>
 		<Link style={styles.navLink} to="/Billing" onClick={() => setShowMenu(false)}>Billing</Link>
 			<Link style={styles.navLink} to="/BillingQueryComponent" onClick={() => setShowMenu(false)}>Billing Dashboard</Link>
+<Link style={styles.navLink} to="/BillModify" onClick={() => setShowMenu(false)}>Bill Edit or Delete</Link>
+
             <Link style={styles.navLink} to="/return" onClick={() => setShowMenu(false)}>Return Master</Link>
             <Link style={styles.navLink} to="/return-detailed-entry" onClick={() => setShowMenu(false)}>Return Detailed Entry</Link>
             <Link style={styles.navLink} to="/share-report" onClick={() => setShowMenu(false)}>Share Report</Link>
@@ -66,7 +69,7 @@ function App() {
             <Route path="/courier" element={<CourierMaster />} />
 		<Route path="/billing" element={<Billing />} />
 		<Route path="/billingquerycomponent" element={<BillingQueryComponent />} />
-
+<Route path="/BillModify" element={<BillModify/>} />
             <Route path="/return" element={<ReturnMaster user={user} />} />
             <Route path="/return-detailed-entry" element={<ReturnDetailedEntry user={user} />} />
             <Route path="/share-report" element={<ShareReportMaster user={user} />} />
