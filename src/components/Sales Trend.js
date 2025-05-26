@@ -16,7 +16,7 @@ const formatDate = (date) => {
 };
 
 const getColor = (index) => {
-  const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50', '#00c49f', '#ff6f91'];
+  const colors = ['#6366f1', '#34d399', '#fbbf24', '#f87171', '#0ea5e9', '#e879f9'];
   return colors[index % colors.length];
 };
 
@@ -46,7 +46,6 @@ const SalesTrends = () => {
 
     axios.get(`${BASE_URL}/billing_dashboard?from=${from}&to=${to}`)
       .then(res => {
-        // Format the date to match our grouping format
         const formatted = res.data.map(entry => ({
           ...entry,
           date: formatDate(new Date(entry.date))
@@ -69,7 +68,6 @@ const SalesTrends = () => {
       return acc;
     }, {});
 
-    // Ensure all 7 dates are present
     const last7Days = getLast7Days();
     return last7Days.map(date => ({
       date,
@@ -78,10 +76,12 @@ const SalesTrends = () => {
   };
 
   const data = getFilteredData();
+  const maxVal = Math.max(...data.map(d => d.quantity), 0);
+  const yAxisMax = Math.ceil(maxVal * 1.5) || 10;
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.header}>📊 Weekly Sales Trends</h2>
+      <h2 style={styles.header}>📈 Weekly Sales Trends</h2>
 
       <div style={styles.filters}>
         <select
@@ -103,22 +103,26 @@ const SalesTrends = () => {
         </select>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={420}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+          <YAxis domain={[0, yAxisMax]} tick={{ fontSize: 12 }} />
+          <Tooltip contentStyle={{ fontSize: 13 }} />
+          <Legend verticalAlign="top" height={36} />
           <Line
             type="monotone"
             dataKey="quantity"
             stroke={getColor(0)}
             strokeWidth={3}
+            dot={{ r: 4 }}
             name={filter.design ? `Design ${filter.design}` : 'Total Quantity'}
-            dot={{ r: 5 }}
           >
-            <LabelList dataKey="quantity" position="top" />
+            <LabelList
+              dataKey="quantity"
+              position="top"
+              style={{ fontSize: 10, fill: '#555' }}
+            />
           </Line>
         </LineChart>
       </ResponsiveContainer>
@@ -129,27 +133,32 @@ const SalesTrends = () => {
 const styles = {
   container: {
     padding: '20px',
-    fontFamily: 'Segoe UI, sans-serif',
+    fontFamily: "'Segoe UI', sans-serif",
     maxWidth: '1000px',
-    margin: '0 auto'
+    margin: '0 auto',
+    background: '#fafafa',
+    borderRadius: '12px',
+    boxShadow: '0 0 10px rgba(0,0,0,0.06)'
   },
   header: {
     marginBottom: '20px',
-    color: '#333',
-    fontSize: '24px',
+    color: '#222',
+    fontSize: '26px',
     textAlign: 'center'
   },
   filters: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     gap: '10px',
     marginBottom: '20px'
   },
   select: {
-    padding: '8px 12px',
+    padding: '8px 14px',
     borderRadius: '6px',
     border: '1px solid #ccc',
-    fontSize: '14px'
+    fontSize: '14px',
+    minWidth: '150px'
   }
 };
 
