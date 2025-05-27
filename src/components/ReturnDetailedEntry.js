@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './ReturnDetailedEntry.css'; // Make sure to create and import this
+import './ReturnDetailedEntry.css';
 
 const BACKEND_URL = 'https://return-processor-backend.onrender.com';
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 function ReturnDetailedEntry() {
   const [formData, setFormData] = useState({
@@ -18,6 +20,7 @@ function ReturnDetailedEntry() {
   const [companies, setCompanies] = useState([]);
   const [couriers, setCouriers] = useState([]);
   const [message, setMessage] = useState('');
+  const [listening, setListening] = useState(false);
 
   useEffect(() => {
     const user_id = localStorage.getItem('user_id') || '';
@@ -35,43 +38,36 @@ function ReturnDetailedEntry() {
   }, []);
 
   const fetchEntries = async () => {
-  try {
-    const res = await axios.get(`${BACKEND_URL}/api/data/return-detailed-entry`);
-    
-    // Sort by `id` descending and take top 40 entries
-    const sortedTopEntries = res.data
-      .sort((a, b) => b.id - a.id) // descending order
-      .slice(0, 40);               // limit to 40
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/data/return-detailed-entry`);
+      const sortedTopEntries = res.data
+        .sort((a, b) => b.id - a.id)
+        .slice(0, 40);
+      setEntries(sortedTopEntries);
+    } catch (err) {
+      console.error('Error fetching entries:', err);
+    }
+  };
 
-    setEntries(sortedTopEntries);
-  } catch (err) {
-    console.error('Error fetching entries:', err);
-  }
-};
-
-
- const fetchCompanies = async () => {
-  try {
-    const res = await axios.get(`${BACKEND_URL}/api/data/company`);
-    const sortedCompanies = res.data
-      .map(item => item.company)
-      .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
-    setCompanies(sortedCompanies);
-  } catch (err) {
-    console.error('Error fetching companies:', err);
-  }
-};
-
+  const fetchCompanies = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/data/company`);
+      const sortedCompanies = res.data
+        .map(item => item.company)
+        .sort((a, b) => a.localeCompare(b));
+      setCompanies(sortedCompanies);
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+    }
+  };
 
   const fetchCouriers = async () => {
     try {
       const res = await axios.get(`${BACKEND_URL}/api/data/courier`);
-	const sortedcouriers = res.data
-      .map(item => item.courier)
-      .sort((a, b) => a.localeCompare(b)); // Sort alphabetically
-    setCouriers(sortedcouriers);
-
-
+      const sortedCouriers = res.data
+        .map(item => item.courier)
+        .sort((a, b) => a.localeCompare(b));
+      setCouriers(sortedCouriers);
     } catch (err) {
       console.error('Error fetching couriers:', err);
     }
@@ -96,6 +92,36 @@ function ReturnDetailedEntry() {
       setMessage('❌ Error saving entry');
       console.error(err);
     }
+  };
+
+  const handleVoiceInput = () => {
+    if (!SpeechRecognition) {
+      alert('Speech Recognition not supported in this browser.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setListening(true);
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      const spokenText = event.results[0][0].transcript;
+      setFormData(prev => ({ ...prev, design: spokenText }));
+      setListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setListening(false);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
   };
 
   return (
@@ -135,14 +161,19 @@ function ReturnDetailedEntry() {
 
         <div className="form-group">
           <label>Design:</label>
-          <input
-            name="design"
-            value={formData.design}
-            onChange={handleChange}
-            placeholder="Design"
-            required
-            autoComplete="off"
-          />
+          <div className="design-voice-wrapper">
+            <input
+              name="design"
+              value={formData.design}
+              onChange={handleChange}
+              placeholder="Design"
+              required
+              autoComplete="off"
+            />
+            <button type="button" onClick={handleVoiceInput} className="mic-btn">
+              🎤 {listening ? 'Listening...' : 'Speak'}
+            </button>
+          </div>
         </div>
 
         <div className="form-group">
