@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   Legend, CartesianGrid, LabelList, ResponsiveContainer
@@ -15,36 +17,20 @@ const formatDate = (date) => {
   return `${day}-${month}-${year}`;
 };
 
-const getColor = (index) => {
-  const colors = ['#6366f1', '#34d399', '#fbbf24', '#f87171', '#0ea5e9', '#e879f9'];
-  return colors[index % colors.length];
-};
-
-const getLast7Days = () => {
-  const dates = [];
-  const today = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    dates.push(formatDate(d));
-  }
-  return dates;
-};
-
 const SalesTrends = () => {
   const [billingData, setBillingData] = useState([]);
   const [designs, setDesigns] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [filter, setFilter] = useState({ design: '', company: '' });
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().slice(0, 10);
+  });
+  const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
-    const today = new Date();
-    const pastDate = new Date(today);
-    pastDate.setDate(today.getDate() - 6);
-    const from = pastDate.toISOString().slice(0, 10);
-    const to = today.toISOString().slice(0, 10);
-
-    axios.get(`${BASE_URL}/billing_dashboard?from=${from}&to=${to}`)
+    axios.get(`${BASE_URL}/billing_dashboard?from=${fromDate}&to=${toDate}`)
       .then(res => {
         const formatted = res.data.map(entry => ({
           ...entry,
@@ -55,7 +41,7 @@ const SalesTrends = () => {
         setDesigns([...new Set(formatted.map(item => item.design))]);
         setCompanies([...new Set(formatted.map(item => item.company))]);
       });
-  }, []);
+  }, [fromDate, toDate]);
 
   const getFilteredData = () => {
     const filtered = billingData.filter(entry =>
@@ -68,12 +54,120 @@ const SalesTrends = () => {
       return acc;
     }, {});
 
-    const last7Days = getLast7Days();
-    return last7Days.map(date => ({
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    const dates = [];
+
+    while (start <= end) {
+      dates.push(formatDate(start));
+      start.setDate(start.getDate() + 1);
+    }
+
+    return dates.map(date => ({
       date,
       quantity: grouped[date] || 0
     }));
   };
+
+const exportPDF = () => {
+  const doc = new jsPDF();
+  let currentY = 10;
+
+  doc.text('Sales Summary', 14, currentY);
+  currentY += 8;
+
+  // Show date range
+  const fromFormatted = fromDate.replace(/-/g, '/');
+  const toFormatted = toDate.replace(/-/g, '/');
+  doc.setFontSize(10);
+  doc.text(`Date Range: ${fromFormatted} - ${toFormatted}`, 14, currentY);
+  currentY += 10;
+
+  const summaryByDesign = {};
+  const summaryByDesignCompany = {};
+
+  billingData.forEach(({ design, company, quantity }) => {
+    if (filter.design && design !== filter.design) return;
+    if (filter.company && company !== filter.company) return;
+
+    summaryByDesign[design] = (summaryByDesign[design] || 0) + quantity;
+
+    const key = `${design}|${company}`;
+    summaryByDesignCompany[key] = (summaryByDesignCompany[key] || 0) + quantity;
+  });
+
+  // Sort designs descending by total quantity
+  const sortedDesigns = Object.entries(summaryByDesign)
+    .sort((a, b) => b[1] - a[1]);
+
+  // Build rows for Design + Company with subtotals
+  const designCompanyRows = [];
+
+  for (const [design, designTotal] of sortedDesigns) {
+    // Get companies for this design, sorted desc by quantity
+    const companyRows = Object.entries(summaryByDesignCompany)
+      .filter(([key]) => key.startsWith(design + '|'))
+      .map(([key, qty]) => {
+        const company = key.split('|')[1];
+        return { company, qty };
+      })
+      .sort((a, b) => b.qty - a.qty);
+
+    // Add rows per company
+    companyRows.forEach(({ company, qty }) => {
+      designCompanyRows.push([design, company, qty]);
+    });
+
+    // Add subtotal row for this design
+    designCompanyRows.push([
+      `${design} Subtotal`,
+      '',
+      designTotal
+    ]);
+  }
+
+  // 1. Summary by Design
+  doc.setFontSize(12);
+  doc.text('1. Summary by Design', 14, currentY);
+  currentY += 6;
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Design', 'Total Quantity']],
+    body: sortedDesigns.map(([design, qty]) => [design, qty]),
+    didDrawPage: (data) => {
+      currentY = data.cursor.y + 10;
+    }
+  });
+
+  // 2. Summary by Design + Company breakdown with subtotals
+  doc.text('2. Summary by Design + Company Breakdown', 14, currentY);
+  currentY += 6;
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Design', 'Company', 'Quantity']],
+    body: designCompanyRows,
+    styles: {
+      fontStyle: 'normal'
+    },
+    didParseCell: function (data) {
+      if (data.row.index >= 0) {
+        const cellText = data.row.cells[0].text;
+        const textStr = Array.isArray(cellText) ? cellText.join('') : cellText;
+        if (textStr.endsWith('Subtotal')) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [230, 230, 230]; // light gray background
+        }
+      }
+    },
+    didDrawPage: (data) => {
+      currentY = data.cursor.y + 10;
+    }
+  });
+
+  const fileName = `sales_report_${fromDate.replace(/-/g, '')}-${toDate.replace(/-/g, '')}.pdf`;
+  doc.save(fileName);
+};
+
 
   const data = getFilteredData();
   const maxVal = Math.max(...data.map(d => d.quantity), 0);
@@ -84,6 +178,18 @@ const SalesTrends = () => {
       <h2 style={styles.header}>📈 Weekly Sales Trends</h2>
 
       <div style={styles.filters}>
+        <input
+          type="date"
+          value={fromDate}
+          onChange={e => setFromDate(e.target.value)}
+          style={styles.select}
+        />
+        <input
+          type="date"
+          value={toDate}
+          onChange={e => setToDate(e.target.value)}
+          style={styles.select}
+        />
         <select
           value={filter.design}
           onChange={e => setFilter({ ...filter, design: e.target.value })}
@@ -92,7 +198,6 @@ const SalesTrends = () => {
           <option value="">All Designs</option>
           {designs.map((d, i) => <option key={i} value={d}>{d}</option>)}
         </select>
-
         <select
           value={filter.company}
           onChange={e => setFilter({ ...filter, company: e.target.value })}
@@ -101,6 +206,10 @@ const SalesTrends = () => {
           <option value="">All Companies</option>
           {companies.map((c, i) => <option key={i} value={c}>{c}</option>)}
         </select>
+
+        <button onClick={exportPDF} style={styles.exportButton}>
+          Export PDF
+        </button>
       </div>
 
       <ResponsiveContainer width="100%" height={420}>
@@ -113,7 +222,7 @@ const SalesTrends = () => {
           <Line
             type="monotone"
             dataKey="quantity"
-            stroke={getColor(0)}
+            stroke="#6366f1"
             strokeWidth={3}
             dot={{ r: 4 }}
             name={filter.design ? `Design ${filter.design}` : 'Total Quantity'}
@@ -159,6 +268,15 @@ const styles = {
     border: '1px solid #ccc',
     fontSize: '14px',
     minWidth: '150px'
+  },
+  exportButton: {
+    padding: '8px 16px',
+    fontSize: '14px',
+    borderRadius: '6px',
+    background: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    cursor: 'pointer'
   }
 };
 
