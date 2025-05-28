@@ -21,7 +21,7 @@ const Login = ({ setUser }) => {
 
       if (id && username && access) {
         localStorage.setItem('user_id', id);
-        setUser({ user_id: id, username,access,privilage,privilage1,privilage2,privilage3});
+        setUser({ user_id: id, username });
       } else {
         setError('Unexpected response from server');
       }
