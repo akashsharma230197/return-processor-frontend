@@ -17,11 +17,11 @@ const Login = ({ setUser }) => {
 
     try {
       const res = await axios.post(endpoint, form);
-      const { id, username } = res.data;
+      const { id, username,access } = res.data;
 
-      if (id && username) {
+      if (id && username && access) {
         localStorage.setItem('user_id', id);
-        setUser({ user_id: id, username });
+        setUser({ user_id: id, username,access,privilage,privilage1,privilage2,privilage3});
       } else {
         setError('Unexpected response from server');
       }
