@@ -1,42 +1,74 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './Login.css'; // Add styles in a separate CSS file
+import './Login.css';
 
 const BACKEND_URL = 'https://return-processor-backend.onrender.com';
 
 const Login = ({ setUser }) => {
   const [form, setForm] = useState({ username: '', password: '' });
-  const [isLogin, setIsLogin] = useState(true);
+  const [changeForm, setChangeForm] = useState({ username: '', currentPassword: '', newPassword: '' });
+  const [mode, setMode] = useState('login');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isLogin
-      ? `${BACKEND_URL}/api/auth/login`
-      : `${BACKEND_URL}/api/auth/register`;
+    setError('');
+    setSuccess('');
 
     try {
-      const res = await axios.post(endpoint, form);
-      const { id, username,access } = res.data;
+      if (mode === 'login' || mode === 'register') {
+        const endpoint = `${BACKEND_URL}/api/auth/${mode}`;
+        const res = await axios.post(endpoint, form);
+        const { id, username } = res.data;
 
-      if (id && username && access) {
-        localStorage.setItem('user_id', id);
-        setUser({ user_id: id, username });
-      } else {
-        setError('Unexpected response from server');
+        if (id && username) {
+          localStorage.setItem('user_id', id);
+          setUser({ user_id: id, username });
+        } else {
+          setError('Unexpected response from server');
+        }
+      } else if (mode === 'changePassword') {
+        const endpoint = `${BACKEND_URL}/api/auth/change-password`;
+        const res = await axios.post(endpoint, changeForm);
+        setSuccess('Password changed successfully!');
+        setChangeForm({ username: '', currentPassword: '', newPassword: '' });
       }
     } catch (err) {
-      console.error('Register/Login error:', err);
+      console.error(`${mode} error:`, err);
       setError(err.response?.data?.error || 'Error occurred');
     }
   };
 
-  return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2>{isLogin ? 'Welcome Back 👋' : 'Create Your Account 🎉'}</h2>
-        {error && <p className="error-message">{error}</p>}
-        <form onSubmit={handleSubmit}>
+  const renderForm = () => {
+    if (mode === 'changePassword') {
+      return (
+        <>
+          <input
+            value={changeForm.username}
+            onChange={e => setChangeForm({ ...changeForm, username: e.target.value })}
+            placeholder="Username"
+            required
+          />
+          <input
+            type="password"
+            value={changeForm.currentPassword}
+            onChange={e => setChangeForm({ ...changeForm, currentPassword: e.target.value })}
+            placeholder="Current Password"
+            required
+          />
+          <input
+            type="password"
+            value={changeForm.newPassword}
+            onChange={e => setChangeForm({ ...changeForm, newPassword: e.target.value })}
+            placeholder="New Password"
+            required
+          />
+        </>
+      );
+    } else {
+      return (
+        <>
           <input
             value={form.username}
             onChange={e => setForm({ ...form, username: e.target.value })}
@@ -50,16 +82,48 @@ const Login = ({ setUser }) => {
             placeholder="Password"
             required
           />
+        </>
+      );
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-card">
+        <h2>
+          {mode === 'login' && 'Welcome Back 👋'}
+          {mode === 'register' && 'Create Your Account 🎉'}
+          {mode === 'changePassword' && 'Change Password 🔒'}
+        </h2>
+        <div className="branding">Balika Creation Software</div>
+
+        {error && <p className="error-message">{error}</p>}
+        {success && <p className="success-message">{success}</p>}
+
+        <form onSubmit={handleSubmit}>
+          {renderForm()}
           <button type="submit">
-            {isLogin ? 'Login' : 'Register'}
+            {mode === 'login' ? 'Login' : mode === 'register' ? 'Register' : 'Change Password'}
           </button>
         </form>
+
         <div className="toggle-link" onClick={() => {
           setError('');
-          setIsLogin(!isLogin);
+          setSuccess('');
+          setMode(mode === 'login' ? 'register' : 'login');
         }}>
-          {isLogin ? "Don't have an account? Register →" : "← Already have an account? Login"}
+          {mode === 'login' ? "Don't have an account? Register →" : "← Already have an account? Login"}
         </div>
+
+        {mode !== 'changePassword' && (
+          <div className="toggle-link" onClick={() => {
+            setError('');
+            setSuccess('');
+            setMode('changePassword');
+          }}>
+            Forgot Password? Change →
+          </div>
+        )}
       </div>
     </div>
   );

@@ -57,7 +57,7 @@ function App() {
   if (!mode) {
     return (
       <div style={styles.modeSelector}>
-        <h2>Select Mode</h2>
+        <h2 style={{ color: 'white' }}>Select Mode</h2>
         <button style={styles.modeButton} onClick={() => setMode('ecommerce')}>
           🛒 Ecommerce
         </button>
@@ -231,6 +231,8 @@ const styles = {
   modeSelector: {
     textAlign: 'center',
     marginTop: '100px',
+
+ 
   },
   modeButton: {
     padding: '20px 40px',
