@@ -91,9 +91,8 @@ const BillingQueryComponent = () => {
       alert(`${selectedCompany} marked as billed for ${selectedDate}`);
       fetchCompanies(); // Refresh status
     } catch (err) {
-      console.error('Detailed error:', error);
-  	res.status(500).json({ message: 'Failed to update company billing status', error: error.message });
-      alert("Failed to update company billing status.");
+      console.error('Detailed error:', err);
+  	      alert("Failed to update company billing status.");
     }
   };
 
