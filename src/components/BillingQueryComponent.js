@@ -8,6 +8,8 @@ const BACKEND_URL = "https://return-processor-backend.onrender.com/api/data";
 const BillingQueryComponent = () => {
   const [billingData, setBillingData] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [readyCompanies, setReadyCompanies] = useState([]);
+  const [billedCompanies, setBilledCompanies] = useState([]);
   const [portals, setPortals] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedPortal, setSelectedPortal] = useState("");
@@ -17,40 +19,40 @@ const BillingQueryComponent = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Fetch portals (static list)
+  // Fetch all companies, ready companies, and billed companies
+  const fetchCompanies = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/company`);
+      const companyNames = res.data.map(c => c.company).sort();
+      setCompanies(companyNames);
+
+      const readyRes = await axios.get(`${BACKEND_URL}/readycompanies?date=${selectedDate}`);
+      setReadyCompanies(readyRes.data.readyCompanies || []);
+
+      const billedRes = await axios.get(`${BACKEND_URL}/billedcompanies?date=${selectedDate}`);
+      setBilledCompanies(billedRes.data.billedCompanies || []);
+    } catch (err) {
+      console.error("Error fetching companies or statuses:", err);
+    }
+  };
+
+  // Fetch portals
+  const fetchPortals = async () => {
+    try {
+      const res = await axios.get(`${BACKEND_URL}/portal`);
+      const names = res.data.map((item) => item.portal);
+      setPortals(names);
+    } catch (err) {
+      console.error("Error fetching portals:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchPortals = async () => {
-      try {
-        const res = await axios.get(`${BACKEND_URL}/portal`);
-        const names = res.data.map((item) => item.portal);
-        setPortals(names);
-      } catch (err) {
-        console.error("Error fetching portals:", err);
-      }
-    };
+    fetchCompanies();
     fetchPortals();
-  }, []);
-
-  // Fetch companies with data for selected date
-  useEffect(() => {
-    const fetchCompaniesForDate = async () => {
-      try {
-        const res = await axios.get(`${BACKEND_URL}/billing?date=${selectedDate}`);
-        if (Array.isArray(res.data.companies)) {
-          setCompanies(res.data.companies);
-        } else {
-          setCompanies([]);
-        }
-      } catch (err) {
-        console.error("Error fetching companies for date:", err);
-        setCompanies([]);
-      }
-    };
-
-    fetchCompaniesForDate();
   }, [selectedDate]);
 
-  // Fetch billing data for selected filters
+  // Fetch billing data
   useEffect(() => {
     const fetchBilling = async () => {
       setLoading(true);
@@ -77,9 +79,25 @@ const BillingQueryComponent = () => {
     fetchBilling();
   }, [selectedDate, selectedCompany, selectedPortal]);
 
-  // Group billing data by company and portal with summed quantity per design
+  // Mark selected company as billed
+  const markCompanyBilled = async () => {
+    if (!selectedCompany) return;
+    try {
+      await axios.post(`${BACKEND_URL}/markcompanybilled`, {
+        company: selectedCompany,
+        date: selectedDate,
+        status: "billed"
+      });
+      alert(`${selectedCompany} marked as billed for ${selectedDate}`);
+      fetchCompanies(); // Refresh status
+    } catch (err) {
+      console.error('Detailed error:', error);
+  	res.status(500).json({ message: 'Failed to update company billing status', error: error.message });
+      alert("Failed to update company billing status.");
+    }
+  };
+
   const getGroupedSummary = () => {
-    // Result shape: { company: { portal: { design: quantitySum } } }
     const summary = {};
     billingData.forEach(({ company, portal, design, quantity }) => {
       if (!summary[company]) summary[company] = {};
@@ -99,17 +117,14 @@ const BillingQueryComponent = () => {
 
     const grouped = getGroupedSummary();
 
-    // For each company
     Object.entries(grouped).forEach(([company, portals]) => {
       doc.text(`Company: ${company}`, 14, currentY);
       currentY += 8;
 
-      // For each portal in company
       Object.entries(portals).forEach(([portal, designs]) => {
         doc.text(`Portal: ${portal}`, 18, currentY);
         currentY += 6;
 
-        // Prepare data for autoTable
         const tableBody = Object.entries(designs).map(([design, qty]) => [design, qty]);
         const totalQty = tableBody.reduce((acc, row) => acc + row[1], 0);
 
@@ -124,18 +139,27 @@ const BillingQueryComponent = () => {
           },
         });
 
-        // Add total row below table
         doc.text(`Total Quantity: ${totalQty}`, 22, currentY);
         currentY += 10;
       });
 
-      currentY += 10; // extra space between companies
+      currentY += 10;
     });
 
-   
-const companyName = selectedCompany || "AllCompanies";
-doc.save(`${companyName}_${selectedDate}.pdf`);
+    const companyName = selectedCompany || "AllCompanies";
+    doc.save(`${companyName}_${selectedDate}.pdf`);
+  };
 
+  const getColorStyle = (company) => {
+    if (billedCompanies.includes(company)) return "blue";
+    if (readyCompanies.includes(company)) return "green";
+    return "red";
+  };
+
+  const getStatusIcon = (company) => {
+    if (billedCompanies.includes(company)) return "📘";
+    if (readyCompanies.includes(company)) return "✅";
+    return "❌";
   };
 
   return (
@@ -150,7 +174,7 @@ doc.save(`${companyName}_${selectedDate}.pdf`);
             value={selectedDate}
             onChange={(e) => {
               setSelectedDate(e.target.value);
-              setSelectedCompany(""); // Reset company when date changes
+              setSelectedCompany("");
             }}
           />
         </div>
@@ -163,8 +187,12 @@ doc.save(`${companyName}_${selectedDate}.pdf`);
           >
             <option value="">-- All Companies --</option>
             {companies.map((comp, idx) => (
-              <option key={idx} value={comp}>
-                {comp}
+              <option
+                key={idx}
+                value={comp}
+                style={{ color: getColorStyle(comp) }}
+              >
+                {comp} {getStatusIcon(comp)}
               </option>
             ))}
           </select>
@@ -186,9 +214,14 @@ doc.save(`${companyName}_${selectedDate}.pdf`);
         </div>
       </div>
 
-      <button onClick={exportPDF} style={{ marginTop: "1rem" }}>
-        Export PDF Summary
-      </button>
+      <div style={{ marginTop: "1rem" }}>
+        <button onClick={exportPDF}>Export PDF Summary</button>
+        {selectedCompany && (
+          <button onClick={markCompanyBilled} style={{ marginLeft: "1rem" }}>
+            Company Successfully Billed
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <p>Loading billing data...</p>
